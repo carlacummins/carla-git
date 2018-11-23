@@ -1,0 +1,156 @@
+#!/usr/bin/python
+
+'''
+
+This is a wrapper around bsub that allows you to define resources,
+commands, etc in a YAML file, rather than on the command line, which
+is useful for keeping note of what you've done. Supports job arrays!
+
+'''
+
+
+import os, sys, re, yaml
+
+submit = True
+if '--no-submit' in sys.argv:
+    submit = False
+    sys.argv.remove('--no-submit')
+elif '-ns' in sys.argv:
+    submit = False
+    sys.argv.remove('-ns')
+
+
+no_quotes = False
+if '--no-quotes' in sys.argv:
+    no_quotes = True
+    sys.argv.remove('--no-quotes')
+elif '-nq' in sys.argv:
+    no_quotes = True
+    sys.argv.remove('-nq')
+
+if '--gen-template' in sys.argv or '-t' in sys.argv:
+    print """# this is a template input for the csub script
+
+# only 'memory' and 'command' are required
+# all other options are optional options and can, optionally, be removed
+
+command: cat file1 file2 > bigfile
+memory: 100mb
+queue: normal
+jobname: template_job
+outfile: template.o
+errfile: template.e
+outdir: /path/to/outdir
+ncpu: 1"""
+    sys.exit(1)
+
+if '--help' in sys.argv or '-h' in sys.argv:
+    print """
+Usage: csub [options] <yml_config_file>
+    -ns | --no-submit    : don't submit job - just print bsub command
+    -nq | --no-quotes    : don't add quotes around command
+    -t  | --gen-template : generate a template YML config file
+    -h  | --help         : this helptext
+
+Config file in YML with fields: (* = required)
+    * memory    : memory to allocate to job. can be in mb or gb. e.g: 500mb | 2gb
+    * command   : command to execute. when using a job array, use "[JI]" in the filename to use
+                  the job index. e.g: to run "perl test.pl" on files named blah1.txt - blah10.txt, 
+                  use "perl test.pl blah[JI].txt" as the command, with jobname "perl_test[1-10]".
+    queue       : default = normal
+    jobname     : job name. default = input file name 
+                  to use a job array, assign the jobname with [range] in it. e.g: testjob[1-10]
+    outfile     : outfile name. default = <jobname>.o
+    errfile     : error file name. default = <jobname>.e
+    outdir      : directory to place out and err files
+    ncpu        : number of CPUs required. default = 1
+    """
+    sys.exit(1)
+
+try:
+    config = yaml.load( file( sys.argv[1], 'r' ) )
+except IndexError:
+    print "Please specify an input file. See csub -h for help."
+
+try:
+    config['memory'] and config['command']
+except KeyError:
+    sys.stderr.write("Please provide memory and command in config file\n")
+    sys.exit(1)
+
+# set up memory
+unit = config['memory'][-2:]
+unit = unit.lower()
+mem = int(config['memory'][:-2])
+
+if unit == "mb":
+    mult = 1
+elif unit == "gb":
+    mult = 1000
+else:
+    print unit + " is an invalid unit. Use mb or gb"
+    sys.exit(0)
+
+mbs = mem*mult
+
+# set up dafaults
+conf_keys = config.keys()
+if 'jobname' not in conf_keys:
+    config['jobname'] = re.sub( "\.[yml|conf]+$", "", os.path.basename(sys.argv[1]))
+if 'outfile' not in conf_keys:        
+    config['outfile'] = "%s.o" % config['jobname']
+if 'errfile' not in conf_keys:
+    config['errfile'] = "%s.e" % config['jobname']
+if 'ncpu' not in conf_keys:
+    config['ncpu'] = 1
+
+
+if 'outdir' in conf_keys:
+    config['outfile'] = "%s/%s" % (config['outdir'], config['outfile'])
+    config['errfile'] = "%s/%s" % (config['outdir'], config['errfile'])
+
+# detect job arrays
+if '[' in config['jobname']:
+    config['outfile'] = re.sub("\[.+\]", "%I", config['outfile'])
+    config['errfile'] = re.sub("\[.+\]", "%I", config['errfile'])
+    config['command'] = re.sub("\[JI\]", "\$LSB_JOBINDEX", config['command'])
+
+bsub = {
+    '-R' : [ "select[mem>%d]" % mbs,  "rusage[mem=%d]" % mbs ],
+    '-M' : str(mbs),
+    '-J' : config['jobname'],
+    '-o' : config['outfile'],
+    '-e' : config['errfile']
+}
+
+# add queue request
+if 'queue' in conf_keys:
+    bsub['-q'] = config['queue']
+
+# add CPU request
+if config['ncpu'] > 1:
+    bsub['-R'].append("span[hosts=1]")
+    bsub['-n'] = config['ncpu']
+
+# stringify reqs
+bsub['-R'] = "'%s'" % " ".join(bsub['-R'])
+
+if no_quotes:
+    bsub_call = "bsub %s %s" % ( " ".join( [ "%s %s" % ( k, bsub[k] ) for k in bsub.keys() ] ), config['command'] )
+else:
+    bsub_call = "bsub %s \"%s\"" % ( " ".join( [ "%s %s" % ( k, bsub[k] ) for k in bsub.keys() ] ), config['command'] )
+
+print bsub_call
+if submit:
+    # deal with old output
+    if os.path.isfile(config['outfile']):
+        outfile_cmd = "cat %s >> %s.old ; rm %s" % (config['outfile'], config['outfile'], config['outfile'])
+        print "outfile_cmd: %s" % outfile_cmd
+        os.system(outfile_cmd)
+    if os.path.isfile(config['errfile']):
+        errfile_cmd = "cat %s >> %s.old ; rm %s" % (config['errfile'], config['errfile'], config['errfile'])
+        print "errfile_cmd: %s" % errfile_cmd
+        os.system(errfile_cmd)
+
+    # submit the job
+    os.system(bsub_call)

@@ -1,0 +1,88 @@
+#!/usr/bin/env perl
+
+=head1 Description
+
+Wanna know how long your hive analysis will take, but don't like to math?
+Pass some basic values in here and let the script guess then
+
+=cut
+
+use strict;
+use warnings;
+use Bio::EnsEMBL::Compara::DBSQL::DBAdaptor;
+use Getopt::Long;
+
+my ( $ready, $time, $capacity, $help );
+
+GetOptions(
+    "r|ready=i"    => \$ready,
+    "t|time=s"     => \$time,
+    "c|capacity=s" => \$capacity,
+    "h|help"       => \$help,
+  );
+
+die_with_usage() if $help;
+unless ( $ready && $time && $capacity ) {
+	print "-r, -t and -c options must be defined\n\n";
+	die_with_usage(); 
+}
+
+unless ( $time =~ m/^([\d\.]+)([smh]$)/ ) {
+	print STDERR "Unrecognised time format. Please use e.g '1.5s', '10m' etc.\n\n";	
+	die_with_usage();
+}
+
+my ( $time_value, $time_unit ) = ( $1, $2 );
+
+my $total_walltime = $ready * $time_value;
+my $conc_walltime = $total_walltime / $capacity;
+
+my ( $sec, $min, $hr );
+if ( $time_unit eq 's' ) { # seconds
+	$sec = $conc_walltime;
+	$min = $sec/60;
+	$hr  = $min/60;
+} elsif ( $time_unit eq 'm' ) { # minutes
+	$min = $conc_walltime;
+	$sec = $min * 60;
+	$hr  = $min / 60;
+} elsif ( $time_unit eq 'h' ) { #hour
+	$hr  = $conc_walltime;
+	$min = $hr * 60;
+	$sec = $min * 60;
+}
+
+if ( $min < 1 ){
+	print "only seconds to go : $sec\n";
+} elsif ( $hr < 1 ) {
+	my ( $m_str, $s_str ) = numeric_to_time($min);
+	print "just minutes left : " . $m_str . "m " . $s_str . "s\n";
+} else {
+	my ( $h_str, $m_str ) = numeric_to_time($hr);
+	print "gonna be a few hours : " . $h_str . 'h ' . $m_str . "m\n";
+}
+
+sub numeric_to_time {
+	my $num = shift;
+
+	my $int   = int($num);
+	my $float = $num - $int;
+
+	my $sec = 0;
+	$sec = 60 * $float if defined $float;
+	my $ssec = sprintf("%.1f", $sec);
+
+	return ( $int, $ssec );
+}
+
+sub die_with_usage {
+	print STDERR <<EOF;
+estimate_analysis_time.pl <options>
+
+	r|ready		number of ready jobs
+	t|time 		avg time per job (unit denoted by s,m or h)
+	c|capacity	number of concurrent jobs allowed by hive/analysis capacity
+
+EOF
+	exit(0);
+}

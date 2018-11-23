@@ -1,0 +1,65 @@
+#!/usr/bin/env perl
+
+=head1 Description
+
+This script sends bstop and bkill commands to all jobs
+running in a given pipeline. Since it uses a simple 
+regex match on a 'bjobs -w' command, it is quite flexible
+
+e.g. bkill_pipe epo_primates_95
+
+=cut
+
+use warnings;
+use strict;
+use Getopt::Long;
+
+my ( $help, $dry_run );
+GetOptions(
+    "help"       => \$help,
+    "dry_run!"   => \$dry_run,
+);
+
+die &helptext if ( $help || !$ARGV[0] );
+my $search_term = $ARGV[0];
+my @all_bjobs = `bjobs -w`;
+
+my @candidates;
+foreach my $job ( @all_bjobs ) {
+	chomp $job;
+	push( @candidates, $job ) if $job =~ /$search_term/;
+}
+
+if ( $dry_run ) {
+	print join("\n", @candidates) . "\n";
+	exit 0;
+}
+
+my %stop_cmds;
+my %kill_cmds;
+foreach my $kill_job ( @candidates ) {
+	$kill_job =~ /^(\d+)/;
+	my $jid = $1;
+	die "Cannot get job id from '$kill_job'\n" unless $jid;
+	$stop_cmds{"bstop $jid"} = 1 if $kill_job =~ /RUN/;
+	$kill_cmds{"bkill $jid"} = 1;
+}
+# print join("\n", keys %stop_cmds) . "\n\n";
+# print join("\n", keys %kill_cmds) . "\n\n";
+
+if ( scalar(keys %stop_cmds) > 0 ) {
+	system( join('; ', keys %stop_cmds) . ';' );
+	sleep 10; # allow LSF time to stop jobs
+}
+system( join('; ', keys %kill_cmds) . ';' );
+
+sub helptext {
+	my $msg = <<HELPEND;
+
+bkill_pipe <hive_pipeline_name> : kill all jobs in the given pipeline
+
+Usage: 
+
+HELPEND
+	return $msg;
+}

@@ -1,0 +1,136 @@
+#!/usr/bin/perl
+
+=head1 Description
+
+Search a list of servers for a given search term. Note the default group (l.25)
+and group aliases (l.29)
+
+=cut
+
+use strict;
+use warnings;
+use Term::ANSIColor;
+
+use Data::Dumper;
+use Getopt::Long;
+
+my ($group, $type, $server_regex, $help);
+GetOptions(
+    "g|group=s" => \$group,
+    "t|type=s"  => \$type,
+    "s|server=s" => \$server_regex,
+    "h|help" => \$help,
+);
+
+$type = $group if !$type and $group;
+$type = 'comp' if !$type;
+&helptext if ( $help );
+
+my %type_aliases = (
+	'production' => 'production',
+	'prod'       => 'production',
+	'pr'         => 'production',
+	'p'          => 'production',
+	'genebuild'  => 'genebuild',
+	'gene'       => 'genebuild',
+	'gb'         => 'genebuild',
+	'g'          => 'genebuild',
+	'compara'    => 'compara',
+	'comp'       => 'compara',
+	'cp'         => 'compara',
+	'c'          => 'compara',
+	'eg'         => 'eg',
+	'ensembl_genomes' => 'eg',
+);
+
+$type = $type_aliases{$type} if $type;
+
+my %server_types = (
+	genebuild => [
+		'mysql-ens-genebuild-prod-1',
+		'mysql-ens-genebuild-prod-2',
+		'mysql-ens-genebuild-prod-3',
+		'mysql-ens-genebuild-prod-4',
+		'mysql-ens-genebuild-prod-5',
+		'mysql-ens-genebuild-prod-6',
+		'mysql-ens-genebuild-prod-7',
+		'mysql-ens-vertannot-staging',
+	],
+	production => [
+		'mysql-ensembl-mirror',
+		'mysql-ens-general-prod-1',
+		'mysql-ens-sta-1',
+		'mysql-ens-sta-2',
+	],
+	compara => [
+		'mysql-ens-compara-prod-1', 
+		'mysql-ens-compara-prod-2', 
+		'mysql-ens-compara-prod-3',
+		'mysql-ens-compara-prod-4',
+		'mysql-ens-compara-prod-5', 
+		'mysql-ens-compara-prod-6', 
+		'mysql-ens-compara-prod-7',
+		'mysql-ens-compara-prod-8',
+	],
+	eg => [
+		'mysql-eg-prod-1',
+		'mysql-eg-prod-2',
+		'mysql-eg-prod-3',
+		'mysql-eg-publicsql',
+		'mysql-eg-staging-1',
+		'mysql-eg-staging-2',
+	],
+);
+my @type_order = ( 'production', 'genebuild', 'eg', 'compara' );
+
+
+my @these_servers;
+if ( ! $type || $type eq 'all' ) {
+	foreach my $this_type ( @type_order ) {
+		push( @these_servers, @{ $server_types{$this_type} } );
+	}
+} elsif ( grep( /^$type$/, keys %server_types )) {
+	@these_servers = @{ $server_types{$type} };
+} else {
+	my $available_types = join( "\n- ", @type_order );
+	die "Cannot find server type '$type'. The following are defined:\n- $available_types\n";
+}
+
+my $query = $ARGV[0];
+
+foreach my $server ( @these_servers ) {
+	next if ( $server_regex && !($server =~ /$server_regex/ig) );
+    # print( colored( ['', 'cyan', ''], "$server\n" ) );
+    my @dbs = `$server -e \"SHOW DATABASES LIKE '%$query%'\" 2> /dev/null`;
+    next unless $dbs[0];
+    chomp @dbs;
+    shift @dbs;
+    foreach my $dbname ( @dbs ) {
+    	print( colored( ['', 'cyan', ''], "$server" ) );
+    	print " $dbname\n";
+    }
+    # print join("\n", map {"$server $_"} @dbs);
+    print "\n";
+}
+
+sub helptext {
+	my $message = <<"END_MESSAGE";
+Usage: dbc_search [options] search_term
+
+* Options:
+  -g|group   server group to search
+  -s|server  regex of server to search
+  -h|help    this help message, duh!
+
+* Server groups:
+  - production (or prod, pr, p)
+  - genebuild  (or gene, gb, g)
+  - eg         (or ensembl_genomes)
+  - compara    (or comp, cp, c)
+
+END_MESSAGE
+   	print $message;
+   	exit(0);
+}
+
+1;

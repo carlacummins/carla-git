@@ -1,0 +1,213 @@
+#!/usr/bin/perl
+
+=head1 Description
+
+Give a breakdown of running/pending jobs on the farm, as well as a per-pipeline
+summary. For a comprehensive overview of pipeline statuses, add the following 
+aliases to your .bashrc file:
+
+alias pipeview="farm_use_hist; echo 'Priority:'; farm_priority; echo ''; echo 'Server stats:'; dbc_processlist"
+alias farm_priority="bhpart | grep $USER | awk '{print \$3}' | uniq"
+
+Note the secondary_user var (l.28). If you run pipelines using a secondary virtual user, add
+the username here and the script will also give some minimal stats on what's running there too
+
+=cut
+
+use strict;
+use warnings;
+
+use Term::ANSIColor;
+use POSIX;
+use Data::Dumper;
+
+my $width = 100;
+our $scale_factor = $width/100;
+my @all_bjobs = `bjobs -w -u all`;
+my $user      = $ENV{USER};
+my $secondary_user = 'compara_ensembl';
+
+my (%pipeline_counts, %pipeline_counts_sec);
+my ( $abs_total, $running_all, $pending_all, $running_cc, $pending_cc ) = (0,0,0,0,0);
+foreach my $job ( @all_bjobs ) {
+    $abs_total++ if ( $job =~ /$user/ );
+    if ( $job =~ /RUN/ ){
+        $running_all++;
+        if ( $job =~ /$user/ ) {
+            $running_cc++;
+            my @spl = split( /\s+/, $job );
+            my $job_name = $spl[6];
+            if ($job_name =~ m/(.+)-Hive-/){
+                $pipeline_counts{$1}->{run}++;
+            }
+        }
+
+        if ( defined $secondary_user && $job =~ /$secondary_user/ ) {
+            my @spl = split( /\s+/, $job );
+            my $job_name = $spl[6];
+            if ($job_name =~ m/(.+)-Hive-/){
+                $pipeline_counts_sec{$1}->{run}++;
+            }
+        }
+    }
+    elsif ( $job =~ /PEND/ ) {
+        $pending_all++;
+        if ( $job =~ /$user/ ){
+            $pending_cc++;
+            my @spl = split( /\s+/, $job );
+            my $job_name = $spl[6];
+            if ($job_name =~ m/(.+)-Hive-/){
+                $pipeline_counts{$1}->{pend}++;
+            }
+        }
+
+        if ( defined $secondary_user && $job =~ /$secondary_user/ ) {
+            my @spl = split( /\s+/, $job );
+            my $job_name = $spl[6];
+            if ($job_name =~ m/(.+)-Hive-/){
+                $pipeline_counts_sec{$1}->{pend}++;
+            }
+        }
+    }
+}
+
+my $total_all = $running_all + $pending_all;
+my $total_cc = $running_cc + $pending_cc;
+
+# use Data::Dumper;
+# print Dumper { 
+#     abs_total   => $abs_total, 
+#     running_all => $running_all,
+#     pending_all => $pending_all,
+#     running_cc  => $running_cc,
+#     pending_cc  => $pending_cc,
+#     total_all   => $total_all,
+#     total_cc    => $total_cc,
+# };
+
+print "Totals:\n";
+create_multi_bar($running_all, $running_cc, $total_all, "RUN  ", 'top');
+create_multi_bar($pending_all, $pending_cc, $total_all, "PEND ", 'bottom');
+
+print "\nPersonal Breakdown:\n";
+personal_breakdown( $running_cc, $pending_cc, $abs_total );
+
+print "\nPipelines:\n";
+pipeline_breakdown( \%pipeline_counts, \%pipeline_counts_sec );
+
+sub create_multi_bar {
+    my ($val, $subval, $total, $label, $perc_label_loc) = @_;
+
+    # prepare variables
+    $label = "COUNT " unless ( defined $label );
+    my $sub_perc = ceil(($subval/$total)*100);
+    my $val_perc = ($val/$total)*100;
+    my $leftover = $val_perc-$sub_perc;
+    $perc_label_loc = undef unless ( $perc_label_loc eq 'top' || $perc_label_loc eq 'bottom' );
+
+    my $perc_label;
+    if ( defined $perc_label_loc ) {
+        my $pre_padding = ' ' x (length($label) + 1 + ($sub_perc*$scale_factor));
+        my $sp          = sprintf "%.2f", ($subval/$val)*100;
+        my $perc_str    = "|$sp%";
+        $perc_label     = "$pre_padding$perc_str\n";
+    }
+
+    print $perc_label if ( $perc_label_loc eq 'top' );
+    
+    # print tag and start of bar
+    print( colored( ['', 'green', ''], $label . '|') );
+
+    # print sub-bar, scaled down
+    print( colored( ['', 'red', ''], '=' x ($sub_perc*$scale_factor) ) );
+    print '|' if ( defined $perc_label );
+
+    # print value bar
+    print( colored( ['', 'yellow', ''], '=' x ($leftover*$scale_factor) ) );
+
+    # print padding
+    print ' ' x ((100*$scale_factor)-$val_perc);
+
+    # print counts
+    print( colored( ['', 'green',  ''], '| '    ) );
+    print( colored( ['', 'red',    ''], "$user:$subval" ) );
+    print '/';
+    print( colored( ['', 'yellow', ''], "all:$val"    ) );
+    print "\n";
+    print $perc_label if ( $perc_label_loc eq 'bottom' );
+}
+
+sub personal_breakdown {
+    my ( $run, $pend, $total ) = @_;
+
+    print( colored( ['','red',''], '     |' ) );
+
+    my ( $run_perc, $pend_perc, $other, $other_perc );
+    if ($total == 0) {
+        ( $run_perc, $pend_perc, $other, $other_perc ) = (0,0,0,100);
+    } else {
+        $run_perc   = ($run/$total)*100;
+        $pend_perc  = ceil(($pend/$total)*100);
+        $other      = $total-($run+$pend);
+        $other_perc = 100-($run_perc+$pend_perc);
+    }
+
+    # print Dumper {run_perc=>$run_perc, pend_perc=>$pend_perc, other_perc=>$other_perc};
+
+    print( colored( ['','green',''], '=' x ($run_perc*$scale_factor) ) );
+    print '|';
+    print( colored( ['','yellow',''], '=' x ($pend_perc*$scale_factor) ) );
+    print '=' x ($other_perc*$scale_factor);
+    print( colored( ['','red',''], "| " ) );
+    
+    print( colored( ['','green',''], "RUN:$run" ) );
+    print "/";
+    print( colored( ['','yellow',''], "PEND:$pend" ) );
+    print "/OTHER:$other";
+    print "\n";
+
+    my $perc_label = " " x ($run_perc*$scale_factor);
+    if ( $total == 0 ) {
+        $perc_label .= "0.00%\n";
+    } else {
+        my $this_perc = ($run/$total)*100;
+        $perc_label .= $this_perc == 100 ? '100.0' : sprintf "%.2f", $this_perc;
+        $perc_label .= "%|\n";
+    }
+    print $perc_label;
+}
+
+sub pipeline_breakdown {
+    my ( $counts, $counts_sec ) = @_;
+
+    my $max_len = 0;
+    for my $n ( keys %$counts ) {
+        $max_len = length($n) + 1 if ( $max_len < length($n) );
+    }
+
+    print _pad('Name', $max_len) . "\tRun\tPend\n";
+    for my $pipe_name ( keys %$counts ) {
+        my $this_run = $counts->{$pipe_name}->{run} || 0;
+        my $this_pend = $counts->{$pipe_name}->{pend} || 0;
+        print join( "\t", _pad($pipe_name, $max_len), $this_run, $this_pend );
+
+        if ( defined $counts_sec ) {
+            my $sec_run  = $counts_sec->{$pipe_name}->{run}  || 0;
+            my $sec_pend = $counts_sec->{$pipe_name}->{pend} || 0;
+            print "\t( + $sec_run r, $sec_pend p as $secondary_user )";
+        }
+
+        print "\n";
+    }
+    print "\n";
+}
+
+sub _pad {
+    my ($s, $pad_len) = @_;
+
+    my $diff = $pad_len - length($s);
+    my $pad  = " " x ($diff*$scale_factor);
+    return "$s$pad";
+}
+
+

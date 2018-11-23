@@ -1,0 +1,189 @@
+#!/usr/bin/perl
+
+=head1 Description
+
+Fetch process count and load values for a given list of servers.
+Note the default group (l.21) and group aliases (l.163).
+
+=cut
+
+use strict;
+use warnings;
+use Term::ANSIColor;
+
+use HTTP::Request;
+use JSON;
+use LWP::UserAgent;
+
+use Data::Dumper;
+use Getopt::Long;
+
+my $default_group = 'compara';
+my ($group, $type, $server_regex, $help);
+GetOptions(
+    "g|group=s" => \$group,
+    "t|type=s"  => \$type,
+    's|server=s' => \$server_regex,
+    "h|help" => \$help,
+);
+$type = $group if defined $group;
+$type = $default_group unless defined $type;
+
+my %servers_per_group = ( 
+    production => [
+        'mysql-ensembl-mirror',
+        'mysql-ens-sta-1',
+        'mysql-ens-sta-2',
+        'mysql-ens-general-prod-1',
+        'mysql-ens-vertannot-staging',
+    ],
+    compara => [
+        'mysql-ens-compara-prod-1', 
+        'mysql-ens-compara-prod-2', 
+        'mysql-ens-compara-prod-3',
+        'mysql-ens-compara-prod-4',
+        'mysql-ens-compara-prod-5',
+        'mysql-ens-compara-prod-6',
+        'mysql-ens-compara-prod-7',
+        'mysql-ens-compara-prod-8',
+    ],
+    eg => [
+        'mysql-eg-prod-1',
+        'mysql-eg-prod-2',
+        'mysql-eg-prod-3',
+    ],
+);
+
+my @servers = @{ get_serverlist($type) };
+my $break_line = "+-------------------------------+---------+---------+---------+----------+\n";
+print $break_line;
+print "| host                          | p_count | load_1m | load_5m | load_15m |\n";
+print $break_line;
+foreach my $server ( @servers ) {
+    # handle break_line formatting
+    if ( $server eq 'break' ){
+        print $break_line;
+        next;
+    }
+
+    # figure out the rw user cmd for each server
+    my $server_rw;
+    if ( $server =~ /-eg-/ ) {
+        $server_rw = "$server-ensrw";
+    } else {
+        $server_rw = "$server-ensadmin";
+    }
+    # fetch process list
+	open( PL, '-|', "$server_rw -e 'SHOW PROCESSLIST' 2>&1" );
+	my $p_count = 0;
+	while ( my $line = <PL> ) {
+		if ( $line =~ m/ERROR/ ){ # server not responding
+			$p_count = 'NA';
+			last;
+		}
+		$p_count++ if ( $line =~ m/^| [0-9]/ ); # count
+	}
+    my $loads = &check_load($server);
+	&fmt_print($server, $p_count, $loads);
+}
+print $break_line;
+
+sub fmt_print {
+    my ($host, $count, $loads) = @_;
+
+    my $p = ( $count eq 'NA' ) ? 500 : $count;
+    my $p_colour = choose_p_colour($p);
+
+    print "| ";
+    my $host_pad = sprintf '%-30s', $host;
+    print( colored( ['', $p_colour, ''], $host_pad) );
+    print "| ";
+    # my $port_pad = sprintf '%-7s', $port;
+    # print( colored( ['', $colour, ''], $port_pad) );
+    # print "| ";
+    my $processes = sprintf '%-8s', $count;
+    print( colored( ['', $p_colour, ''], $processes) );
+
+    # print "|";
+    # print " " . sprintf('%-7s', $loads->{load_1m})  . " |";
+    # print " " . sprintf('%-7s', $loads->{load_5m})  . " |";
+    # print " " . sprintf('%-8s', $loads->{load_15m}) . " |\n";
+
+    print "| ";
+    my $l1_fmt = sprintf('%-7s', $loads->{load_1m});
+    print( colored( ['', choose_load_colour($loads->{load_1m}), ''], $l1_fmt ) );
+    print " | ";
+    my $l5_fmt = sprintf('%-7s', $loads->{load_5m});
+    print( colored( ['', choose_load_colour($loads->{load_5m}), ''], $l5_fmt ) );
+    print " | ";
+    my $l15_fmt = sprintf('%-8s', $loads->{load_15m});
+    print( colored( ['', choose_load_colour($loads->{load_15m}), ''], $l15_fmt ) );
+    print " |\n";
+    
+}
+
+sub choose_p_colour {
+    my $p = shift;
+
+    if ( $p < 100 ) { return 'white'  } 
+    if ( $p < 250 ) { return 'cyan'   }
+    if ( $p < 500 ) { return 'yellow' }
+    return 'red';
+}
+
+sub choose_load_colour {
+    my $load = shift;
+
+    if ( $load < 8  ) { return "white"  }
+    if ( $load < 15 ) { return "cyan"   }
+    if ( $load < 50 ) { return "yellow" }
+    return "red";
+}
+
+sub check_load {
+    my $host = shift;
+
+    my $load_check_url = "http://ens-prod-1.ebi.ac.uk:5002/hosts/$host";
+    my $request = HTTP::Request->new(GET => "$load_check_url");
+    $request->header( 'Content-Type' => 'application/json' );
+    my $ua = LWP::UserAgent->new;
+    my $response = $ua->request($request);
+    my $content = $response->content();
+    my $host_info = decode_json($content);
+    my $loads;
+    foreach my $k ( ('load_1m', 'load_5m', 'load_15m') ) {
+        $loads->{$k} = $host_info->{$k};
+    }
+    return $loads;
+}
+
+sub get_serverlist {
+    my $type = shift;
+
+    my %group_aliases = (
+        'prod' => 'production',
+        'p'    => 'production',
+        'comp' => 'compara',
+        'c'    => 'compara',
+    );
+
+
+    my @these_servers;
+    if ( $type eq 'all' ) {
+        foreach my $k ( keys %servers_per_group ) {
+            push(@these_servers, @{$servers_per_group{$k}});
+            push(@these_servers, 'break');
+        }
+        pop @these_servers; # remove trailing 'break'
+    } elsif ( defined $servers_per_group{$type} ) {
+        @these_servers = @{$servers_per_group{$type}};
+    } elsif ( defined $servers_per_group{ $group_aliases{$type} } ) {
+        @these_servers = @{ $servers_per_group{ $group_aliases{$type} } };
+    } else {
+        die "Unknown group '$type'\n";
+    }
+
+    @these_servers = grep { $_ =~ /$server_regex/ || $_ eq 'break' } @these_servers if $server_regex;
+
+    return \@these_servers;
+}
