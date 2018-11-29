@@ -16,7 +16,7 @@ the username here and the script will also give some minimal stats on what's run
 
 use strict;
 use warnings;
-
+use Getopt::Long;
 use Term::ANSIColor;
 use POSIX;
 use Data::Dumper;
@@ -26,6 +26,11 @@ our $scale_factor = $width/100;
 my @all_bjobs = `bjobs -w -u all`;
 my $user      = $ENV{USER};
 my $secondary_user = 'compara_ensembl';
+my $genebuild_user;
+GetOptions(
+    "g" => \$genebuild_user,
+);
+$secondary_user = 'genebuild' if ($genebuild_user);
 
 my (%pipeline_counts, %pipeline_counts_sec);
 my ( $abs_total, $running_all, $pending_all, $running_cc, $pending_cc ) = (0,0,0,0,0);

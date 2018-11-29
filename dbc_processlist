@@ -19,15 +19,21 @@ use Data::Dumper;
 use Getopt::Long;
 
 my $default_group = 'compara';
-my ($group, $type, $server_regex, $help);
+my ($group, $type, $server_regex, $without_loads, $help);
 GetOptions(
     "g|group=s" => \$group,
     "t|type=s"  => \$type,
-    's|server=s' => \$server_regex,
+    "s|server=s" => \$server_regex,
+    "w|without_loads" => \$without_loads,
     "h|help" => \$help,
 );
 $type = $group if defined $group;
 $type = $default_group unless defined $type;
+
+if ($help){
+    print("\nProgram: dbc_processlist (Fetch process count and load values for a given list of servers.)\n\nUSAGE:\ndbc_processlist [options]\n\nOPTIONS:\n-g <group>\tproduction | compara | eg | genebuild | all\n-w\t\tRun without load information\n-h\t\tShow this help and exit\n\n");
+    exit;
+  }
 
 my %servers_per_group = ( 
     production => [
@@ -51,6 +57,15 @@ my %servers_per_group = (
         'mysql-eg-prod-1',
         'mysql-eg-prod-2',
         'mysql-eg-prod-3',
+    ],
+    genebuild => [
+    'mysql-ens-genebuild-prod-1',
+    'mysql-ens-genebuild-prod-2',
+    'mysql-ens-genebuild-prod-3',
+    'mysql-ens-genebuild-prod-4',
+    'mysql-ens-genebuild-prod-5',
+    'mysql-ens-genebuild-prod-6',
+    'mysql-ens-genebuild-prod-7',
     ],
 );
 
@@ -83,8 +98,15 @@ foreach my $server ( @servers ) {
 		}
 		$p_count++ if ( $line =~ m/^| [0-9]/ ); # count
 	}
-    my $loads = &check_load($server);
-	&fmt_print($server, $p_count, $loads);
+    if ($without_loads){
+      my $loads = {'load_1m'=>'-', 'load_5m'=>'-', 'load_15m'=>'-'};
+      &fmt_print($server, $p_count, $loads);
+    }
+    else{
+      my $loads = &check_load($server);
+      &fmt_print($server, $p_count, $loads);
+    }
+
 }
 print $break_line;
 
@@ -109,17 +131,24 @@ sub fmt_print {
     # print " " . sprintf('%-7s', $loads->{load_5m})  . " |";
     # print " " . sprintf('%-8s', $loads->{load_15m}) . " |\n";
 
+    my ($l1_fmt, $l5_fmt, $l15_fmt);
+
+    if ($loads->{load_1m} eq "-"){
+      ($l1_fmt, $l5_fmt, $l15_fmt) = (sprintf('%-7s',"-"),sprintf('%-7s',"-"),sprintf('%-8s',"-"));
+    }
+    else{
+      $l1_fmt = sprintf('%-7s', $loads->{load_1m});
+      $l5_fmt = sprintf('%-7s', $loads->{load_5m});
+      $l15_fmt = sprintf('%-8s', $loads->{load_15m});
+    }
+
     print "| ";
-    my $l1_fmt = sprintf('%-7s', $loads->{load_1m});
     print( colored( ['', choose_load_colour($loads->{load_1m}), ''], $l1_fmt ) );
     print " | ";
-    my $l5_fmt = sprintf('%-7s', $loads->{load_5m});
     print( colored( ['', choose_load_colour($loads->{load_5m}), ''], $l5_fmt ) );
     print " | ";
-    my $l15_fmt = sprintf('%-8s', $loads->{load_15m});
     print( colored( ['', choose_load_colour($loads->{load_15m}), ''], $l15_fmt ) );
     print " |\n";
-    
 }
 
 sub choose_p_colour {
@@ -134,6 +163,7 @@ sub choose_p_colour {
 sub choose_load_colour {
     my $load = shift;
 
+    if ( $load eq "-" ) { return "red" }
     if ( $load < 8  ) { return "white"  }
     if ( $load < 15 ) { return "cyan"   }
     if ( $load < 50 ) { return "yellow" }
@@ -149,11 +179,19 @@ sub check_load {
     my $ua = LWP::UserAgent->new;
     my $response = $ua->request($request);
     my $content = $response->content();
-    my $host_info = decode_json($content);
     my $loads;
-    foreach my $k ( ('load_1m', 'load_5m', 'load_15m') ) {
+    eval {
+      my $host_info = decode_json($content);
+      foreach my $k ( ('load_1m', 'load_5m', 'load_15m') ) {
         $loads->{$k} = $host_info->{$k};
+      }
+      1;
     }
+    or do {
+      foreach my $k ( ('load_1m', 'load_5m', 'load_15m') ) {
+        $loads->{$k} = "-";
+      }
+    };
     return $loads;
 }
 
@@ -165,6 +203,7 @@ sub get_serverlist {
         'p'    => 'production',
         'comp' => 'compara',
         'c'    => 'compara',
+	'gb'   => 'genebuild',
     );
 
 
