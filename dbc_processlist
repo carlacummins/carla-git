@@ -70,9 +70,9 @@ my %servers_per_group = (
 );
 
 my @servers = @{ get_serverlist($type) };
-my $break_line = "+-------------------------------+---------+---------+---------+----------+\n";
+my $break_line = "+-------------------------------+---------+---------+---------+----------+----------|\n";
 print $break_line;
-print "| host                          | p_count | load_1m | load_5m | load_15m |\n";
+print "| host                          | p_count | load_1m | load_5m | load_15m | disk_pct |\n";
 print $break_line;
 foreach my $server ( @servers ) {
     # handle break_line formatting
@@ -99,7 +99,7 @@ foreach my $server ( @servers ) {
 		$p_count++ if ( $line =~ m/^| [0-9]/ ); # count
 	}
     if ($without_loads){
-      my $loads = {'load_1m'=>'-', 'load_5m'=>'-', 'load_15m'=>'-'};
+      my $loads = {'load_1m'=>'-', 'load_5m'=>'-', 'load_15m'=>'-', 'disk_used_pct'=>'-'};
       &fmt_print($server, $p_count, $loads);
     }
     else{
@@ -131,11 +131,12 @@ sub fmt_print {
     # print " " . sprintf('%-7s', $loads->{load_5m})  . " |";
     # print " " . sprintf('%-8s', $loads->{load_15m}) . " |\n";
 
-    my ($l1_fmt, $l5_fmt, $l15_fmt);
+    my ($l1_fmt, $l5_fmt, $l15_fmt, $dpct_fmt);
 
       $l1_fmt = sprintf('%-7s', $loads->{load_1m});
       $l5_fmt = sprintf('%-7s', $loads->{load_5m});
       $l15_fmt = sprintf('%-8s', $loads->{load_15m});
+      $dpct_fmt = sprintf('%-8s', $loads->{disk_used_pct});
 
     print "| ";
     print( colored( ['', choose_load_colour($loads->{load_1m}), ''], $l1_fmt ) );
@@ -143,6 +144,8 @@ sub fmt_print {
     print( colored( ['', choose_load_colour($loads->{load_5m}), ''], $l5_fmt ) );
     print " | ";
     print( colored( ['', choose_load_colour($loads->{load_15m}), ''], $l15_fmt ) );
+    print " | ";
+    print( colored( ['', choose_disk_colour($loads->{disk_used_pct}), ''], $dpct_fmt ) );
     print " |\n";
 }
 
@@ -165,6 +168,15 @@ sub choose_load_colour {
     return "red";
 }
 
+sub choose_disk_colour {
+    my $disk = shift;
+    if ( $disk eq "-" ) { return "red" }
+    if ( $disk < 50  ) { return "white"  }
+    if ( $disk < 75 ) { return "cyan"   }
+    if ( $disk < 90 ) { return "yellow" }
+    return "red";
+}
+
 sub check_load {
     my $host = shift;
 
@@ -177,13 +189,13 @@ sub check_load {
     my $loads;
     eval {
       my $host_info = decode_json($content);
-      foreach my $k ( ('load_1m', 'load_5m', 'load_15m') ) {
+      foreach my $k ( ('load_1m', 'load_5m', 'load_15m', 'disk_used_pct') ) {
         $loads->{$k} = $host_info->{$k};
       }
       1;
     }
     or do {
-      foreach my $k ( ('load_1m', 'load_5m', 'load_15m') ) {
+      foreach my $k ( ('load_1m', 'load_5m', 'load_15m', 'disk_used_pct') ) {
         $loads->{$k} = "-";
       }
     };
