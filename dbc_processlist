@@ -57,6 +57,9 @@ my %servers_per_group = (
         'mysql-eg-prod-1',
         'mysql-eg-prod-2',
         'mysql-eg-prod-3',
+        'mysql-eg-enaprod',
+        'mysql-eg-hive',
+        'mysql-eg-pan-prod',
     ],
     genebuild => [
     'mysql-ens-genebuild-prod-1',
