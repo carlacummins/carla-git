@@ -133,14 +133,9 @@ sub fmt_print {
 
     my ($l1_fmt, $l5_fmt, $l15_fmt);
 
-    if ($loads->{load_1m} eq "-"){
-      ($l1_fmt, $l5_fmt, $l15_fmt) = (sprintf('%-7s',"-"),sprintf('%-7s',"-"),sprintf('%-8s',"-"));
-    }
-    else{
       $l1_fmt = sprintf('%-7s', $loads->{load_1m});
       $l5_fmt = sprintf('%-7s', $loads->{load_5m});
       $l15_fmt = sprintf('%-8s', $loads->{load_15m});
-    }
 
     print "| ";
     print( colored( ['', choose_load_colour($loads->{load_1m}), ''], $l1_fmt ) );
