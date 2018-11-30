@@ -185,6 +185,11 @@ sub personal_breakdown {
 sub pipeline_breakdown {
     my ( $counts, $counts_sec ) = @_;
 
+    unless (%$counts) {
+        print "None\n";
+        return;
+    }
+
     my $max_len = 0;
     for my $n ( keys %$counts ) {
         $max_len = length($n) + 1 if ( $max_len < length($n) );
