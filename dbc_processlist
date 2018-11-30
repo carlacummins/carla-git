@@ -142,11 +142,11 @@ sub fmt_print {
       $dpct_fmt = sprintf('%-8s', $loads->{disk_used_pct});
 
     print "| ";
-    print( colored( ['', choose_load_colour($loads->{load_1m}), ''], $l1_fmt ) );
+    print( colored( ['', choose_load_colour($loads->{load_1m}, $loads->{n_cpus}), ''], $l1_fmt ) );
     print " | ";
-    print( colored( ['', choose_load_colour($loads->{load_5m}), ''], $l5_fmt ) );
+    print( colored( ['', choose_load_colour($loads->{load_5m}, $loads->{n_cpus}), ''], $l5_fmt ) );
     print " | ";
-    print( colored( ['', choose_load_colour($loads->{load_15m}), ''], $l15_fmt ) );
+    print( colored( ['', choose_load_colour($loads->{load_15m}, $loads->{n_cpus}), ''], $l15_fmt ) );
     print " | ";
     print( colored( ['', choose_disk_colour($loads->{disk_used_pct}), ''], $dpct_fmt ) );
     print " |\n";
@@ -163,11 +163,12 @@ sub choose_p_colour {
 
 sub choose_load_colour {
     my $load = shift;
+    my $n_cpus = shift || 8;
 
     if ( $load eq "-" ) { return "red" }
-    if ( $load < 8  ) { return "white"  }
-    if ( $load < 15 ) { return "cyan"   }
-    if ( $load < 50 ) { return "yellow" }
+    if ( $load < $n_cpus  ) { return "white"  }
+    if ( $load < 2*$n_cpus ) { return "cyan"   }
+    if ( $load < 4*$n_cpus ) { return "yellow" }
     return "red";
 }
 
@@ -192,7 +193,7 @@ sub check_load {
     my $loads;
     eval {
       my $host_info = decode_json($content);
-      foreach my $k ( ('load_1m', 'load_5m', 'load_15m', 'disk_used_pct') ) {
+      foreach my $k ( ('load_1m', 'load_5m', 'load_15m', 'disk_used_pct', 'n_cpus') ) {
         $loads->{$k} = $host_info->{$k};
       }
       1;
