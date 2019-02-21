@@ -93,8 +93,15 @@ else:
 
 mbs = mem*mult
 
-# set up dafaults
+# check for invalid keys
 conf_keys = config.keys()
+valid_keys = ['memory', 'command', 'queue', 'jobname', 'outfile', 'errfile', 'outdir', 'ncpu']
+for k in conf_keys:
+    if k not in valid_keys:
+        sys.stderr.write("ERROR: unrecognised key '%s'\nValid keys: ['%s']\n\n" % (k, "', '".join(valid_keys)))
+        sys.exit(1)
+
+# set up dafaults
 if 'jobname' not in conf_keys:
     config['jobname'] = re.sub( "\.[yml|conf]+$", "", os.path.basename(sys.argv[1]))
 if 'outfile' not in conf_keys:        
