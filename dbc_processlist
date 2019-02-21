@@ -37,7 +37,7 @@ if ($help){
 
 my %servers_per_group = ( 
     production => [
-        'mysql-ensembl-mirror',
+        'mysql-ens-mirror-1',
         'mysql-ens-sta-1',
         'mysql-ens-sta-2',
         'mysql-ens-general-prod-1',
