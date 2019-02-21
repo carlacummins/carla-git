@@ -14,6 +14,8 @@ use warnings;
 use strict;
 use Getopt::Long;
 
+$|++; # turn on auto-flush of stdout buffer
+
 my ( $help, $dry_run );
 GetOptions(
     "help"       => \$help,
@@ -28,6 +30,11 @@ my @candidates;
 foreach my $job ( @all_bjobs ) {
 	chomp $job;
 	push( @candidates, $job ) if $job =~ /$search_term/;
+}
+
+if (scalar @candidates == 0) {
+	print "No '$search_term' jobs found!\n";
+	exit(1);
 }
 
 if ( $dry_run ) {
@@ -49,7 +56,13 @@ foreach my $kill_job ( @candidates ) {
 
 if ( scalar(keys %stop_cmds) > 0 ) {
 	system( join('; ', keys %stop_cmds) . ';' );
-	sleep 10; # allow LSF time to stop jobs
+	# allow LSF time to stop jobs
+	print 'Waiting for jobs to stop';
+	foreach my $x ( 1..5 ) {
+		print '.';
+		sleep 2;
+	}
+	print "\n";
 }
 system( join('; ', keys %kill_cmds) . ';' );
 
