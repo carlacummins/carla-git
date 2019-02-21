@@ -1,0 +1,25 @@
+#!/usr/bin/perl
+
+=head1 Description
+
+Drop database from ensembl server using db commands
+
+=cut
+
+use strict;
+use warnings;
+
+my ($server, $db_name) = @ARGV;
+
+die "Usage: dbc_drop mysql-ens-compara-prod-X db_name\n\n" unless $server && $db_name;
+
+my $server_rw;
+if ( $server =~ /-eg-/ ) {
+    $server_rw = "$server-ensrw";
+} else {
+    $server_rw = "$server-ensadmin";
+}
+
+my $cmd = "$server_rw -e 'drop database $db_name'";
+print "$cmd\n";
+system($cmd);
