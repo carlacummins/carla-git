@@ -25,7 +25,7 @@ my $command = '$SHELL';
 $command = join(' ', @ARGV) if $ARGV[0];
 
 my ($mult, $unit);
-if ( $mem_h =~ /([0-9]+)gb/ ) {
+if ( $mem_h =~ /([0-9\.]+)gb/ ) {
 	$unit = $1;
 	$mult = 1000;
 }
@@ -34,10 +34,10 @@ elsif ( $mem_h =~ /([0-9]+)mb/ ) {
 	$mult = 1;
 }
 else {
-	die ( "Can't figure out memory statement. Please use e.g. 2gb, 500mb" );
+	die ( "Can't figure out memory statement. Please use e.g. 2gb, 4.5gb, 500mb" );
 }
 
 my $mb_req = $unit * $mult;
-my $bsub = "bsub -Is -M$mb_req -R\"select[mem>$mb_req] rusage[mem=$mb_req]\" $command";
+my $bsub = "bsub -Is -q production-rh74 -M$mb_req -R\"select[mem>$mb_req] rusage[mem=$mb_req]\" $command";
 print "$bsub\n";
 system($bsub);
