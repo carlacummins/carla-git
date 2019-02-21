@@ -73,7 +73,7 @@ my %servers_per_group = (
 );
 
 my @servers = @{ get_serverlist($type) };
-my $break_line = "+-------------------------------+---------+---------+---------+----------+----------|\n";
+my $break_line = "+-------------------------------+---------+---------+---------+----------+----------+\n";
 print $break_line;
 print "| host                          | p_count | load_1m | load_5m | load_15m | disk_pct |\n";
 print $break_line;
