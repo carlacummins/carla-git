@@ -73,12 +73,17 @@ my %server_types = (
 		'mysql-ens-compara-prod-8',
 	],
 	eg => [
-		'mysql-eg-prod-1',
-		'mysql-eg-prod-2',
-		'mysql-eg-prod-3',
-		'mysql-eg-publicsql',
-		'mysql-eg-staging-1',
-		'mysql-eg-staging-2',
+		'mysql-ens-sta-3',
+		'mysql-ens-sta-4',
+		'mysql-ens-mirror-3',
+		'mysql-ens-mirror-4',
+		'mysql-ens-metazoa-prod-1',
+		'mysql-ens-metazoa-prod-2',
+		'mysql-ens-microbes-prod-1',
+		'mysql-ens-microbes-prod-2',
+		'mysql-ens-microbes-prod-3',
+		'mysql-ens-plants-prod-1',
+		'mysql-ens-plants-prod-2',
 	],
 );
 my @type_order = ( 'production', 'genebuild', 'eg', 'compara' );
