@@ -84,6 +84,9 @@ my %server_types = (
 		'mysql-ens-microbes-prod-3',
 		'mysql-ens-plants-prod-1',
 		'mysql-ens-plants-prod-2',
+		'mysql-ens-hive-prod-1',
+		'mysql-ens-hive-prod-2',
+		'mysql-eg-pan-prod',
 	],
 );
 my @type_order = ( 'production', 'genebuild', 'eg', 'compara' );
