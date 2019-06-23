@@ -104,7 +104,7 @@ if ( ! $type || $type eq 'all' ) {
 	die "Cannot find server type '$type'. The following are defined:\n- $available_types\n";
 }
 
-my $query = $ARGV[0];
+my $query = $ARGV[0] // '';
 
 foreach my $server ( @these_servers ) {
 	next if ( $server_regex && !($server =~ /$server_regex/ig) );
