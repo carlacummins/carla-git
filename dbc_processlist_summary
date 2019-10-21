@@ -1,0 +1,1 @@
+$1 --table -e "select db, command, count(*) from INFORMATION_SCHEMA.PROCESSLIST group by db, command"

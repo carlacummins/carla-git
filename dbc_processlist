@@ -52,6 +52,7 @@ my %servers_per_group = (
         'mysql-ens-compara-prod-6',
         'mysql-ens-compara-prod-7',
         'mysql-ens-compara-prod-8',
+        'mysql-ens-vertannot-staging',
     ],
     eg => [
         'mysql-ens-sta-3',
@@ -171,7 +172,7 @@ sub choose_load_colour {
     my $n_cpus = shift || 8;
 
     if ( $load eq "-" ) { return "red" }
-    if ( $load < $n_cpus  ) { return "white"  }
+    if ( $load < $n_cpus/2  ) { return "white"  }
     if ( $load < 2*$n_cpus ) { return "cyan"   }
     if ( $load < 4*$n_cpus ) { return "yellow" }
     return "red";

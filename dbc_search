@@ -41,6 +41,10 @@ my %type_aliases = (
 	'c'          => 'compara',
 	'eg'         => 'eg',
 	'ensembl_genomes' => 'eg',
+    'sta'        => 'staging',
+    's'          => 'staging',
+    'mirr'       => 'mirror',
+    'm'          => 'mirror',
 );
 
 $type = $type_aliases{$type} if $type;
@@ -58,9 +62,11 @@ my %server_types = (
 	],
 	production => [
 		'mysql-ens-mirror-1',
+        'mysql-ens-mirror-3',
 		'mysql-ens-general-prod-1',
 		'mysql-ens-sta-1',
-		'mysql-ens-sta-2',
+		# 'mysql-ens-sta-2',
+        'mysql-ens-sta-3',
 	],
 	compara => [
 		'mysql-ens-compara-prod-1', 
@@ -87,9 +93,24 @@ my %server_types = (
 		'mysql-ens-hive-prod-1',
 		'mysql-ens-hive-prod-2',
 		'mysql-eg-pan-prod',
+        'mysql-ens-general-dev-1',
+        'mysql-ens-general-dev-2',
+        'mysql-ens-general-dev-3',
 	],
+    staging => [
+        'mysql-ens-sta-1',
+        'mysql-ens-sta-2',
+        'mysql-ens-sta-3',
+        'mysql-ens-sta-4',
+    ],
+    mirror => [
+        'mysql-ens-mirror-1',
+        'mysql-ens-mirror-2',
+        'mysql-ens-mirror-3',
+        'mysql-ens-mirror-4',
+    ],
 );
-my @type_order = ( 'production', 'genebuild', 'eg', 'compara' );
+my @type_order = ( 'mirror', 'staging', 'production', 'genebuild', 'eg', 'compara' );
 
 
 my @these_servers;

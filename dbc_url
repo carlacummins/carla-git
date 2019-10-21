@@ -1,0 +1,29 @@
+#!/usr/bin/perl
+
+=head1 Description
+
+Drop database from ensembl server using db commands
+
+=cut
+
+use strict;
+use warnings;
+
+my ($server, $db_name) = @ARGV;
+
+die "Usage: dbc_url [mysql-ens-compara-prod-X|cpX] db_name\n\n" unless $server && $db_name;
+
+my $port = get_host_info($server, 'port');
+my $full_host_name = get_host_info($server, 'host'); # allow for aliases
+my $user = get_host_info($server, 'user');
+my $pass = get_host_info($server, 'pass');
+my $user_pass = $pass eq '' ? $user : "$user:$pass";
+print "mysql://$user_pass\@$full_host_name:$port/$db_name\n";
+
+
+sub get_host_info {
+    my ($host, $info_name) = @_;
+    my $info = `echo \$($host $info_name)`;
+    chomp $info;
+    return $info;
+}
