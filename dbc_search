@@ -135,8 +135,12 @@ foreach my $server ( @these_servers ) {
     chomp @dbs;
     shift @dbs;
     foreach my $dbname ( @dbs ) {
-    	print( colored( ['', 'cyan', ''], "$server" ) );
-    	print " $dbname\n";
+        if (-p STDOUT) {
+            print "$server $dbname\n";
+        } else {
+            print( colored( ['', 'cyan', ''], "$server" ) );
+            print " $dbname\n";
+        }
     }
     # print join("\n", map {"$server $_"} @dbs);
     print "\n";
