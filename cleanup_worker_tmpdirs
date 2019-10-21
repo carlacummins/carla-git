@@ -35,7 +35,10 @@ chomp @hosts;
 @hosts = grep { $_ =~ /^ebi\d/ || $_ =~ /^hx-noah-\d{2}-\d{2}/ } @hosts;
 
 my $filter = $ARGV[0];
-die "No filter defined - please use --force flag to remove *all* tmp dirs owned by you\n" unless ( defined $filter || defined $force );
+unless ( defined $filter || defined $force ){
+    print "No filter defined - please use --force flag to remove *all* tmp dirs owned by you\n\n";
+    &helptext;
+}
 
 $filter =~ s/^${user}_//; # ensure username is not given twice
 my $delete_dir = "$tmp_root/worker_${user}_${filter}*";
@@ -55,6 +58,9 @@ Usage: cleanup_worker_tmpdirs [options] <pipeline_name>
                 delete all tmp dirs belonging to you
   -dry_run      print the cleanup commands - don't run them
   -h|help       this help message, obviously!
+
+NOTE: this script only works if you can ssh to all nodes without the
+      need for a password. Set up ssh keys before use.
 
 END_MESSAGE
    	print $message;
