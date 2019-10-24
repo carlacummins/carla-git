@@ -77,6 +77,8 @@ my %server_types = (
 		'mysql-ens-compara-prod-6', 
 		'mysql-ens-compara-prod-7',
 		'mysql-ens-compara-prod-8',
+		'mysql-ens-compara-prod-9',
+		'mysql-ens-compara-prod-10',
 	],
 	eg => [
 		'mysql-ens-sta-3',
