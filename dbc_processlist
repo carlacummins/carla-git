@@ -142,10 +142,10 @@ sub fmt_print {
 
     my ($l1_fmt, $l5_fmt, $l15_fmt, $dpct_fmt);
 
-      $l1_fmt = sprintf('%-7s', $loads->{load_1m});
-      $l5_fmt = sprintf('%-7s', $loads->{load_5m});
-      $l15_fmt = sprintf('%-8s', $loads->{load_15m});
-      $dpct_fmt = sprintf('%-8s', $loads->{disk_used_pct});
+      $l1_fmt = sprintf('%-7s', $loads->{load_1m} // 'NA');
+      $l5_fmt = sprintf('%-7s', $loads->{load_5m} // 'NA');
+      $l15_fmt = sprintf('%-8s', $loads->{load_15m} // 'NA');
+      $dpct_fmt = sprintf('%-8s', $loads->{disk_used_pct} // 'NA');
 
     print "| ";
     print( colored( ['', choose_load_colour($loads->{load_1m}, $loads->{n_cpus}), ''], $l1_fmt ) );
@@ -171,6 +171,7 @@ sub choose_load_colour {
     my $load = shift;
     my $n_cpus = shift || 8;
 
+    if ( not defined $load ) { return "red" }
     if ( $load eq "-" ) { return "red" }
     if ( $load < $n_cpus/2  ) { return "white"  }
     if ( $load < 2*$n_cpus ) { return "cyan"   }
@@ -180,6 +181,7 @@ sub choose_load_colour {
 
 sub choose_disk_colour {
     my $disk = shift;
+    if ( not defined $disk ) { return "red" }
     if ( $disk eq "-" ) { return "red" }
     if ( $disk < 50  ) { return "white"  }
     if ( $disk < 75 ) { return "cyan"   }
