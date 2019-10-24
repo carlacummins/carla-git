@@ -52,6 +52,8 @@ my %servers_per_group = (
         'mysql-ens-compara-prod-6',
         'mysql-ens-compara-prod-7',
         'mysql-ens-compara-prod-8',
+        'mysql-ens-compara-prod-9',
+        'mysql-ens-compara-prod-10',
         'mysql-ens-vertannot-staging',
     ],
     eg => [
