@@ -20,6 +20,11 @@ if ( $server =~ /-eg-/ ) {
     $server_rw = "$server-ensadmin";
 }
 
-my $cmd = "$server_rw -e 'drop database $db_name'";
+my $cmd = "standaloneJob.pl Bio::EnsEMBL::Hive::RunnableDB::DatabaseDumper -exclude_list 1 -db_conn \$($server_rw details url)$db_name -output_file ${db_name}.sql.gz &> /dev/null";
+print "Backing up eHive tables from $db_name into ${db_name}.sql.gz\n";
+system($cmd) == 0
+    or die "'$cmd' failed: $?";
+
+$cmd = "$server_rw -e 'drop database $db_name'";
 print "$cmd\n";
 system($cmd);
