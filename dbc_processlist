@@ -187,10 +187,7 @@ sub choose_disk_colour {
 sub check_load {
     my $host = shift;
 
-	# at some point the production team will switch URL
-    my $load_check_url = "http://ens-prod-1.ebi.ac.uk:5002/hosts/$host";
-    # my $load_check_url = "http://production-services.ensembl.org/api/hosts/$host";
-
+    my $load_check_url = "http://production-services.ensembl.org/api/production/db/hosts/$host";
 	my $request = HTTP::Request->new(GET => "$load_check_url");
     $request->header( 'Content-Type' => 'application/json' );
     my $ua = LWP::UserAgent->new;
