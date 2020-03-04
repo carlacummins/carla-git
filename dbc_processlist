@@ -70,13 +70,13 @@ my %servers_per_group = (
         'mysql-ens-plants-prod-2',
     ],
     genebuild => [
-    'mysql-ens-genebuild-prod-1',
-    'mysql-ens-genebuild-prod-2',
-    'mysql-ens-genebuild-prod-3',
-    'mysql-ens-genebuild-prod-4',
-    'mysql-ens-genebuild-prod-5',
-    'mysql-ens-genebuild-prod-6',
-    'mysql-ens-genebuild-prod-7',
+    	'mysql-ens-genebuild-prod-1',
+    	'mysql-ens-genebuild-prod-2',
+    	'mysql-ens-genebuild-prod-3',
+    	'mysql-ens-genebuild-prod-4',
+    	'mysql-ens-genebuild-prod-5',
+    	'mysql-ens-genebuild-prod-6',
+    	'mysql-ens-genebuild-prod-7',
     ],
 );
 
@@ -131,23 +131,16 @@ sub fmt_print {
     my $host_pad = sprintf '%-30s', $host;
     print( colored( ['', $p_colour, ''], $host_pad) );
     print "| ";
-    # my $port_pad = sprintf '%-7s', $port;
-    # print( colored( ['', $colour, ''], $port_pad) );
-    # print "| ";
-    my $processes = sprintf '%-8s', $count;
-    print( colored( ['', $p_colour, ''], $processes) );
 
-    # print "|";
-    # print " " . sprintf('%-7s', $loads->{load_1m})  . " |";
-    # print " " . sprintf('%-7s', $loads->{load_5m})  . " |";
-    # print " " . sprintf('%-8s', $loads->{load_15m}) . " |\n";
+	my $processes = sprintf '%-8s', $count;
+    print( colored( ['', $p_colour, ''], $processes) );
 
     my ($l1_fmt, $l5_fmt, $l15_fmt, $dpct_fmt);
 
-      $l1_fmt = sprintf('%-7s', $loads->{load_1m} // 'NA');
-      $l5_fmt = sprintf('%-7s', $loads->{load_5m} // 'NA');
-      $l15_fmt = sprintf('%-8s', $loads->{load_15m} // 'NA');
-      $dpct_fmt = sprintf('%-8s', $loads->{disk_used_pct} // 'NA');
+    $l1_fmt = sprintf('%-7s', $loads->{load_1m} // 'NA');
+    $l5_fmt = sprintf('%-7s', $loads->{load_5m} // 'NA');
+    $l15_fmt = sprintf('%-8s', $loads->{load_15m} // 'NA');
+    $dpct_fmt = sprintf('%-8s', $loads->{disk_used_pct} // 'NA');
 
     print "| ";
     print( colored( ['', choose_load_colour($loads->{load_1m}, $loads->{n_cpus}), ''], $l1_fmt ) );
@@ -194,8 +187,11 @@ sub choose_disk_colour {
 sub check_load {
     my $host = shift;
 
+	# at some point the production team will switch URL
     my $load_check_url = "http://ens-prod-1.ebi.ac.uk:5002/hosts/$host";
-    my $request = HTTP::Request->new(GET => "$load_check_url");
+    # my $load_check_url = "http://production-services.ensembl.org/api/hosts/$host";
+
+	my $request = HTTP::Request->new(GET => "$load_check_url");
     $request->header( 'Content-Type' => 'application/json' );
     my $ua = LWP::UserAgent->new;
     my $response = $ua->request($request);
@@ -224,7 +220,7 @@ sub get_serverlist {
         'p'    => 'production',
         'comp' => 'compara',
         'c'    => 'compara',
-	'gb'   => 'genebuild',
+		'gb'   => 'genebuild',
     );
 
 
