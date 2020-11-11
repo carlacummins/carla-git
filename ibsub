@@ -9,7 +9,10 @@ bsub command.
 # run a specific command with 4Gb memory:
 ibsub 4gb perl this_is_not_a_script.pl
 
-# request basic, empty interactive shell with 100mb memory
+# run a specific command with 2Gb memory and 2 cores:
+ibsub 2gb -n 2 perl this_is_not_a_script.pl
+
+# request basic, empty interactive shell with 100mb memory:
 ibsub 100mb
 
 =cut
@@ -17,7 +20,23 @@ ibsub 100mb
 use strict;
 use warnings;
 
-my $mem_h = shift @ARGV;
+use Getopt::Long qw(:config pass_through);
+use Pod::Usage;
+
+my ($mem, $nuc, $queue, $help);
+$nuc = 1;
+$queue = $ENV{LSB_DEFAULTQUEUE} || "production-rh74";
+
+GetOptions(
+	"mem|m=s"   => \$mem,
+	"nuc|n=i"   => \$nuc,
+	"queue|q=s" => \$queue,
+	"help|h"    => \$help,
+);
+
+pod2usage({-exitvalue => 0, -verbose => 3}) if $help;
+
+my $mem_h = $mem || shift @ARGV;
 $mem_h ||= '1gb';
 $mem_h = lc($mem_h);
 
@@ -38,6 +57,6 @@ else {
 }
 
 my $mb_req = $unit * $mult;
-my $bsub = "bsub -Is -q production-rh74 -M$mb_req -R\"select[mem>$mb_req] rusage[mem=$mb_req]\" $command";
+my $bsub = "bsub -q $queue -M$mb_req -R\"select[mem>$mb_req] rusage[mem=$mb_req]\" -n $nuc -Is $command";
 print "$bsub\n";
 system($bsub);
