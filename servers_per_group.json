@@ -1,0 +1,75 @@
+{
+    "genebuild": [
+        "mysql-ens-genebuild-prod-1",
+        "mysql-ens-genebuild-prod-2",
+        "mysql-ens-genebuild-prod-3",
+        "mysql-ens-genebuild-prod-4",
+        "mysql-ens-genebuild-prod-5",
+        "mysql-ens-genebuild-prod-6",
+        "mysql-ens-genebuild-prod-7",
+        "mysql-ens-vertannot-staging"
+    ],
+    "production": [
+        "mysql-ens-mirror-1",
+        "mysql-ens-mirror-3",
+        "mysql-ens-general-prod-1",
+        "mysql-ens-general-prod-3",
+        "mysql-ens-sta-1",
+        "mysql-ens-sta-1-b",
+        "mysql-ens-sta-3",
+        "mysql-ens-sta-3-b",
+        "mysql-ens-sta-4",
+        "mysql-ens-sta-4-b",
+        "mysql-ens-sta-5",
+        "mysql-ens-core-prod-1"
+    ],
+    "compara": [
+        "mysql-ens-compara-prod-1",
+        "mysql-ens-compara-prod-2",
+        "mysql-ens-compara-prod-3",
+        "mysql-ens-compara-prod-4",
+        "mysql-ens-compara-prod-5",
+        "mysql-ens-compara-prod-6",
+        "mysql-ens-compara-prod-7",
+        "mysql-ens-compara-prod-8",
+        "mysql-ens-compara-prod-9",
+        "mysql-ens-compara-prod-10",
+        "mysql-ens-vertannot-staging"
+    ],
+    "eg": [
+        "mysql-ens-sta-3",
+        "mysql-ens-sta-3-b",
+        "mysql-ens-sta-4",
+        "mysql-ens-mirror-3",
+        "mysql-ens-mirror-4",
+        "mysql-ens-metazoa-prod-1",
+        "mysql-ens-metazoa-prod-2",
+        "mysql-ens-microbes-prod-1",
+        "mysql-ens-microbes-prod-2",
+        "mysql-ens-microbes-prod-3",
+        "mysql-ens-plants-prod-1",
+        "mysql-ens-plants-prod-2",
+        "mysql-ens-hive-prod-1",
+        "mysql-ens-hive-prod-2",
+        "mysql-eg-pan-prod",
+        "mysql-ens-general-dev-1",
+        "mysql-ens-general-dev-2",
+        "mysql-ens-general-dev-3"
+    ],
+    "staging": [
+        "mysql-ens-sta-1",
+        "mysql-ens-sta-1-b",
+        "mysql-ens-sta-2",
+        "mysql-ens-sta-3",
+        "mysql-ens-sta-3-b",
+        "mysql-ens-sta-4",
+        "mysql-ens-sta-4-b",
+        "mysql-ens-sta-5"
+    ],
+    "mirror": [
+        "mysql-ens-mirror-1",
+        "mysql-ens-mirror-2",
+        "mysql-ens-mirror-3",
+        "mysql-ens-mirror-4"
+    ]
+}
