@@ -21,6 +21,7 @@ use Cwd 'abs_path';
 
 use Bio::EnsEMBL::Utils::IO qw (slurp);
 
+my @color_list = ('white', 'cyan', 'yellow', 'red'); # increasing severity
 my $default_group = 'compara';
 my ($group, $type, $server_regex, $without_loads, $servers_json_file, $help);
 GetOptions(
@@ -121,32 +122,32 @@ sub fmt_print {
 sub choose_p_colour {
     my $p = shift;
 
-    if ( $p < 100 ) { return 'white'  }
-    if ( $p < 250 ) { return 'cyan'   }
-    if ( $p < 500 ) { return 'yellow' }
-    return 'red';
+    if ( $p < 100 ) { return $color_list[0]  }
+    if ( $p < 250 ) { return $color_list[1]   }
+    if ( $p < 500 ) { return $color_list[2] }
+    return $color_list[3];
 }
 
 sub choose_load_colour {
     my $load = shift;
     my $n_cpus = shift || 8;
 
-    if ( not defined $load ) { return "red" }
-    if ( $load eq "-" ) { return "red" }
-    if ( $load < $n_cpus/2  ) { return "white"  }
-    if ( $load < 2*$n_cpus ) { return "cyan"   }
-    if ( $load < 4*$n_cpus ) { return "yellow" }
-    return "red";
+    if ( not defined $load ) { return $color_list[3] }
+    if ( $load eq "-" ) { return $color_list[3] }
+    if ( $load < $n_cpus/2  ) { return $color_list[0]  }
+    if ( $load < 2*$n_cpus ) { return $color_list[1]   }
+    if ( $load < 4*$n_cpus ) { return $color_list[2] }
+    return $color_list[3];
 }
 
 sub choose_disk_colour {
     my $disk = shift;
-    if ( not defined $disk ) { return "red" }
-    if ( $disk eq "-" ) { return "red" }
-    if ( $disk < 50  ) { return "white"  }
-    if ( $disk < 75 ) { return "cyan"   }
-    if ( $disk < 90 ) { return "yellow" }
-    return "red";
+    if ( not defined $disk ) { return $color_list[3] }
+    if ( $disk eq "-" ) { return $color_list[3] }
+    if ( $disk < 50  ) { return $color_list[0]  }
+    if ( $disk < 75 ) { return $color_list[1]   }
+    if ( $disk < 90 ) { return $color_list[2] }
+    return $color_list[3];
 }
 
 sub check_load {
